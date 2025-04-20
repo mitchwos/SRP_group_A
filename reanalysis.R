@@ -421,3 +421,66 @@ pheatmap(scaled_mouse_exp,
          show_colnames=FALSE,
          annotation_legend=FALSE,
          annotation_names_row=FALSE)
+
+# MHC I pathway genes
+MHC_genes <- c('HLA-A','HLA-B','HLA-C','B2M','TAPBP','CALR','HSPA5', 'ERAP1',
+               'PDIA3','SEC61A1','SEC61A2','SEC61B','SEC61G')
+# clean mat genes names
+row.names(mat) <- toupper(trimws(sub('\\..*','', row.names(mat))))
+# empty list
+MHC <- list()
+# add cells from each relevant type
+MHC[['adult_neurons']] <- row.names(colData(sce))[colData(sce)$cell_type=='neurons']
+MHC[['fetal_r']] <- row.names(colData(sce))[colData(sce)$cell_type=='fetal_replicating']
+MHC[['fetal_q']] <- row.names(colData(sce))[colData(sce)$cell_type=='fetal_quiescent']
+MHC[['endothelial']] <- row.names(colData(sce))[colData(sce)$cell_type=='endothelial']
+MHC[['microglia']] <- row.names(colData(sce))[colData(sce)$cell_type=='microglia']
+# list of all relevant cells
+all_cells <- unique(unlist(MHC))
+# expression matrix of only relevant cells and genes
+MHC_mat <- mat[row.names(mat) %in% MHC_genes, colnames(mat) %in% all_cells]
+# select SEC61 genes
+SEC61_rows <- MHC_mat[row.names(MHC_mat) %in% c('SEC61A1','SEC61A2','SEC61B',
+                                                'SEC61G'), ]
+# get mean of SEC61 columns
+row_mean <- colMeans(SEC61_rows)
+# remove SEC61 genes from matrix
+MHC_mat <- MHC_mat[!(row.names(MHC_mat) %in% c('SEC61A1','SEC61A2','SEC61B',
+                                                  'SEC61G')), ]
+# add avg SEC61 genes to matrix
+MHC_mat <- rbind(MHC_mat, 'SEC61'=row_mean)
+# convert matrix to long format
+exp_long <- data.frame(MHC_mat) %>%
+  rownames_to_column('gene') %>%
+  pivot_longer(cols=-gene, names_to='cell', values_to='expression')
+# create vector of cell types
+MHC_cell_types <- unlist(lapply(names(MHC), function(x){
+  set_names(rep(x, length(MHC[[x]])), MHC[[x]])
+}))
+# map cell types to expression data frame
+exp_long$cell_type <- MHC_cell_types[exp_long$cell]
+# log normalise expression 
+exp_long$expression <- log1p(exp_long$expression)
+# order cell type
+cell_order <- c('adult_neurons','endothelial','microglia','fetal_q',
+                'fetal_r')
+# box plot legend labels
+cell_label <- c('Adult neurons','Endothelial cells','Microglia','Fetal quiescent',
+                'Fetal replicating')
+# create cell type factor
+exp_long$cell_type <- factor(exp_long$cell_type, levels = cell_order, 
+                             labels=cell_label)
+# order genes to match figure in paper
+gene_order <- c('HLA-A','TAPBP','B2M','HSPA5','HLA-B','CALR','PDIA3','HLA-C',
+                'ERAP1','SEC61')
+# create gene factor
+exp_long$gene <- factor(exp_long$gene, levels=gene_order)
+# MHC I gene expression box plot
+ggplot(exp_long, aes(x='', y=expression, fill=cell_type)) +
+  geom_boxplot(outlier.size=0.5, position=position_dodge(width=0.75)) +
+  facet_wrap(~gene, scales='free') +
+  theme_minimal() +
+  theme(axis.text.x=element_blank(), legend.position=c(0.75,0.17)) +
+  xlab(NULL) +
+  labs(fill='cell type') +
+  scale_fill_brewer(palette='Spectral')
