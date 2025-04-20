@@ -5,7 +5,7 @@ PREPROCESSING -
 
 OLD PIPELINE - 
 
-Test_1a.sh - note: raj pls explain what the code is :)
+Test_1a.sh - The script tells STAR where to find your genome index, input FASTQ files, and output folder
 
 gene_count_matrix.R - converting all gene count expression csvs into one gene count matrix
 
