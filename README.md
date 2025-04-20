@@ -1,5 +1,8 @@
 welcome! ʕ •ᴥ•ʔ 
 
+PREPROCESSING - 
+
+
 OLD PIPELINE - 
 
 Test_1a.sh - note: raj pls explain what the code is :)
