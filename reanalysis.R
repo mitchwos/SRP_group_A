@@ -335,6 +335,17 @@ ggplot(marker_matches, aes(x=cluster, fill=cluster)) +
   scale_fill_brewer(palette='Spectral') +
   xlab(NULL) +
   ggtitle('Unbiased Clusters - Cell Types')
+# same plot flipped
+ggplot(marker_matches, aes(x=cell.type, fill=cell.type)) +
+  geom_bar() +
+  facet_wrap(~cluster, scales='fixed') +
+  theme_light() +
+  theme(axis.text.x=element_blank(), legend.position=c(0.75,0.17),
+        plot.title=element_text(hjust=0.5)) +
+  labs(fill='cell type') +
+  scale_fill_brewer(palette='Spectral') +
+  xlab(NULL) +
+  ggtitle('Unbiased Clusters - Cell Types')
 
 # count matrix
 count_mat <- counts(sce)
