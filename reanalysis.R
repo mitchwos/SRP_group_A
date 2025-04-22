@@ -314,6 +314,23 @@ marker_matches <- markers %>%
 # save as file
 save(marker_matches, file='/home/mjw85/Documents/SRP/Group_Project/marker_matches.RData' )
 
+# order cell type
+type_order <- c('astrocytes','endothelial cells','microglia','neurons',
+                'oligodendrocytes','OPC')
+# create cell type factor
+marker_matches$cell.type <- factor(marker_matches$cell.type, levels = type_order)
+# order clusters
+clusters_order <- c('1','2','3','4','5','6','7','8','9','10')
+# create cluster factor
+marker_matches$cluster <- factor(marker_matches$cluster, levels=clusters_order)
+# 
+ggplot(marker_matches, aes(x=cluster, fill=cluster)) +
+  geom_bar() +
+  facet_wrap(~cell.type, scales='fixed') +
+  theme_minimal() +
+  labs(fill='cluster') +
+  scale_fill_brewer(palette='Spectral')
+
 # count matrix
 count_mat <- counts(sce)
 # scuttle
