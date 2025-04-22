@@ -273,9 +273,10 @@ colnames(cells_100) <- cell_types
 write.csv(cells_100,'/home/mjw85/Documents/SRP/Group_Project/cells_100.csv',
           row.names=FALSE)
 
-# packages
-library(tidyr)
-library(dplyr)
+# tidyverse packages
+library(tidyverse)
+# conflicted
+library(conflicted)
 # lengthen data with cell type and gene columns
 cell_df <- pivot_longer(cells_100, cols=everything(), names_to='cell type',
                         values_to='gene')
@@ -323,13 +324,17 @@ marker_matches$cell.type <- factor(marker_matches$cell.type, levels = type_order
 clusters_order <- c('1','2','3','4','5','6','7','8','9','10')
 # create cluster factor
 marker_matches$cluster <- factor(marker_matches$cluster, levels=clusters_order)
-# 
+
+# unbiased clusters' cell types identified via top 20 DEGs
 ggplot(marker_matches, aes(x=cluster, fill=cluster)) +
   geom_bar() +
   facet_wrap(~cell.type, scales='fixed') +
   theme_minimal() +
+  theme(plot.title=element_text(hjust=0.5)) +
   labs(fill='cluster') +
-  scale_fill_brewer(palette='Spectral')
+  scale_fill_brewer(palette='Spectral') +
+  xlab(NULL) +
+  ggtitle('Unbiased Clusters - Cell Types')
 
 # count matrix
 count_mat <- counts(sce)
@@ -377,8 +382,6 @@ cell_hclust <- hclust(cell_dist, method='ward.D2')
 # plot dendrogram
 plot(cell_hclust, labels = FALSE)
 
-# tibble
-library(tibble)
 # tibble of cells and 7 biased clusters
 biased_clusters <- cutree(cell_hclust, k=7) %>%
   enframe() %>%
@@ -402,8 +405,7 @@ scaled_mouse_exp <- scaled_mouse_exp[rownames(gene_anno), ]
 cluster_order <- c('1','2','3','4','5','6','7')
 # order cells by clusters
 ordered_cells <- rownames(cluster_anno)[
-  order(factor(cluster_anno$unbiased, levels=cluster_order))
-]
+  order(factor(cluster_anno$unbiased, levels=cluster_order))]
 # apply order to expression matrix columns
 scaled_mouse_exp <- scaled_mouse_exp[, ordered_cells]
 # apply order to cluster annotation rows
@@ -412,8 +414,7 @@ cluster_anno <- cluster_anno[ordered_cells, , drop=FALSE]
 gene_colors <- list(
   cell.type = c('oligodendrocyte genes'='#fa9e5d','astrocyte genes'='#f3ee6e',
                 'microglia genes'='#65ff54','endothelial genes'='#f7b1df',
-                'OPC genes'='#8bafff','neuron genes'='#ff7e6a')
-)
+                'OPC genes'='#8bafff','neuron genes'='#ff7e6a'))
 # convert biased clusters to characters and factorize
 cluster_anno$biased <- as.factor(as.character(cluster_anno$biased))
 # convert unbiased clusters to characters and factorize
@@ -423,8 +424,7 @@ cluster_colors <- list(
   biased = c('1'='#e35e49','2'='#f09e48','3'='#f1ea66','4'='#8fe357',
              '5'='#3a79d3','6'='#be6fea','7'='#ffa8dc'),
   unbiased = c('1'='#e35e49','2'='#f09e48','3'='#3a79d3','4'='#f1ea66',
-               '5'='#8fe357','6'='#be6fea','7'='#ffa8dc')
-)
+               '5'='#8fe357','6'='#be6fea','7'='#ffa8dc'))
 # pheatmap
 library(pheatmap)
 # create heat map 
@@ -438,6 +438,37 @@ pheatmap(scaled_mouse_exp,
          show_colnames=FALSE,
          annotation_legend=FALSE,
          annotation_names_row=FALSE)
+
+# data frame to compare unbiased and biased clusters cell types
+cell_clusters <- data.frame(cell=row.names(colData(sce_adult)),
+  cell_type=colData(sce_adult)$cell_type,
+  unbiased=colData(sce_adult)$clusters,
+  biased=colData(sce_adult)$biased_clusters)
+# removing hybrid cell type
+cell_clusters <- filter(cell_clusters, cell_type!='hybrid')
+# recoding biased cluster numbers to align with related unbiased cluster numbers
+cell_clusters <- cell_clusters %>%
+  mutate(biased = recode(biased, '3'='4', '4'='5', '5'='3')) %>%
+  mutate(cell_type = as.character(cell_type), unbiased = as.character(unbiased),
+    biased = as.character(biased))
+# lengthen data
+cell_clusters_long <- pivot_longer(cell_clusters, cols=c(unbiased, biased), 
+                                   names_to="cluster_type", values_to = "cluster")
+# count matrix
+cluster_counts <- cell_clusters_long %>%
+  dplyr::count(cell_type, cluster_type, cluster)
+# cell type assignment comparison of unbiased and biased clustering bar plot
+ggplot(cluster_counts, aes(x=cell_type, y=n, fill=cluster_type)) +
+  geom_bar(stat='identity') +
+  facet_wrap(~cluster, scales='free_y', ncol=4) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=90), legend.position=c(0.88,0.1),
+        plot.title=element_text(hjust=0.5)) +
+  scale_fill_manual(values=c('#ABDDA4','#FDAE61')) +
+  labs(fill='clusters') +
+  xlab(NULL) +
+  ylab('count') +
+  ggtitle('Cell Type Assignment')
 
 # MHC I pathway genes
 MHC_genes <- c('HLA-A','HLA-B','HLA-C','B2M','TAPBP','CALR','HSPA5', 'ERAP1',
@@ -497,7 +528,9 @@ ggplot(exp_long, aes(x='', y=expression, fill=cell_type)) +
   geom_boxplot(outlier.size=0.5, position=position_dodge(width=0.75)) +
   facet_wrap(~gene, scales='free') +
   theme_minimal() +
-  theme(axis.text.x=element_blank(), legend.position=c(0.75,0.17)) +
+  theme(axis.text.x=element_blank(), legend.position=c(0.75,0.17),
+        plot.title=element_text(hjust=0.5)) +
   xlab(NULL) +
   labs(fill='cell type') +
-  scale_fill_brewer(palette='Spectral')
+  scale_fill_brewer(palette='Spectral') +
+  ggtitle('Expression of MHCI Pathway Associated Genes')
