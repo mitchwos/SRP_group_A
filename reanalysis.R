@@ -164,6 +164,28 @@ reducedDim(sce, 'tsne') <- mtsne
 # add clusters to metadata
 colData(sce)$clusters <- as.factor(clusters)
 
+# tidyverse packages
+library(tidyverse)
+# conflicted
+library(conflicted)
+# age and cluster data frame
+age_clusters <- data.frame(age=colData(sce)$age, cluster=colData(sce)$clusters)
+# count matrix
+age_cluster_counts <- age_clusters %>%
+  dplyr::count(age, cluster)
+# age assignment of cells in each unbiased cluster bar chart
+ggplot(age_cluster_counts, aes(x=age, y=n, fill=age)) +
+  geom_bar(stat='identity') +
+  facet_wrap(~cluster, scales='free_y') +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=90), legend.position = c(0.80, 0.1),
+        plot.title=element_text(hjust=0.5)) +
+  scale_fill_manual(values=c('#ABDDA4','#FDAE61')) +
+  labs(fill='clusters') +
+  xlab(NULL) +
+  ylab('count') +
+  ggtitle('Adult and Fetal Cells - Unbiased Cluster Assignment')
+
 # empty list
 cluster_deg <- list()
 # function to apply to each cluster
@@ -273,10 +295,6 @@ colnames(cells_100) <- cell_types
 write.csv(cells_100,'/home/mjw85/Documents/SRP/Group_Project/cells_100.csv',
           row.names=FALSE)
 
-# tidyverse packages
-library(tidyverse)
-# conflicted
-library(conflicted)
 # lengthen data with cell type and gene columns
 cell_df <- pivot_longer(cells_100, cols=everything(), names_to='cell type',
                         values_to='gene')
