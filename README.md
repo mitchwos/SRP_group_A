@@ -14,6 +14,8 @@ OLD PIPELINE -
 
 Test_1a.sh - The script tells STAR where to find your genome index, input FASTQ files, and output folder
 
+htseq.sh - to quantify genes into counts matrix following alignment with STAR
+
 gene_count_matrix.R - converting all gene count expression csvs into one gene count matrix
 
 reanalysis.R - attempt to recreate original pipeline analysis
